@@ -1,39 +1,42 @@
-# Todo List App
+# Todo List App (Advanced MERN Stack)
 
-Ứng dụng **Todo List** giúp bạn quản lý công việc hằng ngày một cách đơn giản và hiệu quả. Dự án được xây dựng theo mô hình **Fullstack** với ReactJS cho frontend và NodeJS (Express) cho backend.
-
----
-
-## Tính năng chính
-
-- Thêm công việc mới
-- Chỉnh sửa công việc
-- Xóa công việc
-- Đánh dấu hoàn thành / chưa hoàn thành
-- Tìm kiếm & lọc công việc (tuỳ chọn)
-- Lưu trữ dữ liệu bằng Database
+Ứng dụng **Todo List** giúp bạn quản lý công việc hằng ngày một cách đơn giản, an toàn và hiệu quả. Dự án được xây dựng theo mô hình **Fullstack** (MERN) hoàn chỉnh, được tích hợp đầy đủ hệ thống Xác thực Người dùng (Authentication) và phân quyền bảo mật.
 
 ---
 
-## Công nghệ sử dụng
+## 🚀 Tính năng chính
+
+- **Xác thực người dùng (Authentication)**: Đăng ký, Đăng nhập, Đăng xuất sử dụng bảo mật JWT.
+- **Tài khoản cá nhân hóa**: Mỗi người dùng có một không gian quản lý công việc riêng biệt, không ai có thể xâm phạm dữ liệu của người khác.
+- **Quản lý công việc (CRUD)**: Thêm, sửa, xoá và đánh dấu hoàn thành công việc.
+- **Giao diện hiện đại (UI/UX)**: 
+  - Sử dụng TailwindCSS kết hợp các component của `shadcn/ui` (mượt mà, Glassmorphism).
+  - Có hiệu ứng Skeleton Loading khi tải dữ liệu.
+  - Hộp thoại Xác nhận (Confirm Dialog) an toàn trước khi xoá.
+- **Bảo mật & Tối ưu Backend**:
+  - Mật khẩu được mã hoá (hashing) qua `bcryptjs`.
+  - Có cơ chế xử lý lỗi (Error Handler) tập trung.
+  - Chặn CORS bảo mật.
+
+---
+
+## 🛠️ Công nghệ sử dụng
 
 ### Frontend
-- ReactJS
-- Hooks (useState, useEffect)
-- Axios / Fetch API
-- CSS / TailwindCSS
+- **ReactJS 19** (Vite)
+- **State Management**: React Context API & Hooks.
+- **Styling**: TailwindCSS, `shadcn/ui`, `lucide-react`.
+- **API Call**: Axios (với Interceptors tự động đính kèm Token).
+- **Routing**: React Router v7.
 
 ### Backend
-- NodeJS
-- ExpressJS
-- MongoDB (hoặc JSON / Memory)
+- **NodeJS** & **ExpressJS**
+- **Database**: MongoDB & Mongoose.
+- **Bảo mật**: `jsonwebtoken` (JWT), `bcryptjs`, `cors`.
 
 ---
 
-
----
-
-## Cài đặt & Chạy dự án
+## ⚙️ Cài đặt & Chạy dự án
 
 ### 1️⃣ Clone repository
 
@@ -44,12 +47,19 @@ cd TODOX
 
 ### 2️⃣ Cài đặt Backend
 
+Cần tạo file `backend/.env` với các nội dung sau:
+```env
+PORT=5001
+MONGODB=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret_key
+NODE_ENV=development
+```
+
 ```bash
 cd backend
 npm install
 npm run dev
 ```
-
 Backend chạy tại: `http://localhost:5001`
 
 ---
@@ -59,49 +69,36 @@ Backend chạy tại: `http://localhost:5001`
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev
 ```
-
-Frontend chạy tại: `http://localhost:5173`
+Frontend chạy tại: `http://localhost:5173` (hoặc `5174` tuỳ cấu hình).
 
 ---
 
-## API mẫu
+## 📡 API Tham khảo
 
-### Lấy danh sách công việc
-```
-GET /api/tasks
-```
+### 🔑 Authentication (`/api/auth`)
+- `POST /register`: Tạo tài khoản mới.
+- `POST /login`: Đăng nhập lấy JWT Token.
+- `GET /me`: Lấy thông tin user hiện tại.
 
-### Thêm công việc
-```
-POST /api/tasks
-{
-  "title": "Learn React"
-}
-```
+### 📝 Tasks (`/api/tasks`) - Cần JWT Token ở Header
+- `GET /`: Lấy danh sách task của User.
+- `POST /`: Tạo mới task.
+- `PUT /:id`: Cập nhật task.
+- `DELETE /:id`: Xoá task.
 
 ---
 
-## Demo & Testing
+## 🌟 Hướng phát triển tiếp theo
 
-- Test API bằng Postman / cURL
-- Kiểm tra UI trên trình duyệt
-
----
-
-## Hướng phát triển tiếp theo
-
-- Authentication (Login / Register)
-- User riêng cho mỗi tài khoản
-- Thống kê công việ
+- Gắn nhãn Độ ưu tiên (Priority - Đỏ/Vàng/Xanh).
+- Thêm Ngày Hết Hạn (Due Date) & Nhắc nhở.
+- Chế độ Màn hình tối (Dark Mode).
+- Tính năng kéo thả (Drag & Drop) để sắp xếp công việc.
 
 ---
 
-## Tác giả
+## 👨‍💻 Tác giả
 
 - **Nguyễn Cảnh Hiếu**
-
----
-
-

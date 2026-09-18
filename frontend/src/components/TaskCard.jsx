@@ -4,6 +4,16 @@ import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Calendar, CheckCircle2, Circle, SquarePen, Trash2 } from "lucide-react";
 import { Input } from "./ui/input";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
 import api from "@/lib/axios";
 import { toast } from "sonner";
 
@@ -60,7 +70,7 @@ const TaskCard = ({ task, index, handleTaskChanged }) => {
     }
   };
 
-  const handleKeyPress = (event) => {
+  const handleKeyDown = (event) => {
     if (event.key === "Enter") {
       updateTask();
     }
@@ -103,7 +113,7 @@ const TaskCard = ({ task, index, handleTaskChanged }) => {
               type="text"
               value={updateTaskTitle}
               onChange={(e) => setUpdateTaskTitle(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyDown}
               onBlur={() => {
                 setIsEditting(false);
                 setUpdateTaskTitle(task.title || "");
@@ -155,15 +165,36 @@ const TaskCard = ({ task, index, handleTaskChanged }) => {
             <SquarePen className="size-4" />
           </Button>
 
-          {/* nút xoá */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="flex-shrink-0 transition-colors size-8 text-muted-foreground hover:text-destructive"
-            onClick={() => deleteTask(task._id)}
-          >
-            <Trash2 className="size-4" />
-          </Button>
+          {/* nút xoá với confirm */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="flex-shrink-0 transition-colors size-8 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Xác nhận xoá</DialogTitle>
+                <DialogDescription>
+                  Bạn có chắc muốn xoá nhiệm vụ "{task.title}"? Hành động này không thể hoàn tác.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Huỷ</Button>
+                </DialogClose>
+                <DialogClose asChild>
+                  <Button variant="destructive" onClick={() => deleteTask(task._id)}>
+                    Xoá
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </Card>

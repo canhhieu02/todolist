@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Task from "../../models/Task.js";
 
 export const getAllTasks = async (req, res) => {
@@ -26,7 +27,8 @@ export const getAllTasks = async (req, res) => {
         }
     }
 
-    const query = startDate ? { createdAt: { $gte: startDate } } : {};
+    const userIdObj = new mongoose.Types.ObjectId(req.user.id);
+    const query = startDate ? { userId: userIdObj, createdAt: { $gte: startDate } } : { userId: userIdObj };
 
 
     try {
@@ -55,7 +57,16 @@ export const getAllTasks = async (req, res) => {
 export const createTask = async (req, res) => {
     try {
         const { title } = req.body;
-        const task = new Task({ title });
+
+        if (!title || !title.trim()) {
+            return res.status(400).json({ message: "Tiêu đề không được để trống." });
+        }
+
+        if (title.trim().length > 200) {
+            return res.status(400).json({ message: "Tiêu đề không được vượt quá 200 ký tự." });
+        }
+
+        const task = new Task({ title: title.trim(), userId: req.user.id });
 
         const newTask = await task.save();
         res.status(201).json(newTask);
@@ -70,10 +81,18 @@ export const updateTask = async(req, res) => {
     try {
         const { title, status, completedAt } = req.body;
 
-        const updatedTask = await Task.findByIdAndUpdate(
-            req.params.id,
+        if (title !== undefined && (!title || !title.trim())) {
+            return res.status(400).json({ message: "Tiêu đề không được để trống." });
+        }
+
+        if (title && title.trim().length > 200) {
+            return res.status(400).json({ message: "Tiêu đề không được vượt quá 200 ký tự." });
+        }
+
+        const updatedTask = await Task.findOneAndUpdate(
+            { _id: req.params.id, userId: req.user.id },
             {
-                title,
+                title: title?.trim(),
                 status,
                 completedAt,
             },
@@ -94,7 +113,7 @@ export const updateTask = async(req, res) => {
 
 export const deleteTask = async(req, res) => {
     try {
-        const deletedTask = await Task.findByIdAndDelete(req.params.id);
+        const deletedTask = await Task.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
 
         if (!deletedTask) {
             return res.status(404).json({ message: "Nhiệm vụ không tồn tại" });

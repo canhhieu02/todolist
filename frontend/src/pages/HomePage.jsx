@@ -17,6 +17,7 @@ const HomePage = () => {
   const [filter, setFilter] = useState("all");
   const [dateQuery, setDateQuery] = useState("all");
   const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchTasks();
@@ -29,6 +30,7 @@ const HomePage = () => {
   // logic
   const fetchTasks = async () => {
     try {
+      setIsLoading(true);
       const res = await api.get(`/tasks?filter=${dateQuery}`);
       setTaskBuffer(res.data.tasks);
       setActiveTaskCount(res.data.activeCount);
@@ -36,6 +38,8 @@ const HomePage = () => {
     } catch (error) {
       console.error("Lỗi xảy ra khi truy xuất tasks:", error);
       toast.error("Lỗi xảy ra khi truy xuất tasks.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -71,16 +75,19 @@ const HomePage = () => {
     }
   });
 
+  const totalPages = Math.ceil(filteredTasks.length / visibleTaskLimit);
+
+  // Tự lùi trang nếu trang hiện tại trống (ví dụ xoá task cuối cùng trên trang)
+  useEffect(() => {
+    if (page > 1 && page > totalPages) {
+      setPage(totalPages || 1);
+    }
+  }, [page, totalPages]);
+
   const visibleTasks = filteredTasks.slice(
     (page - 1) * visibleTaskLimit,
     page * visibleTaskLimit
   );
-
-  if (visibleTasks.length === 0) {
-    handlePrev();
-  }
-
-  const totalPages = Math.ceil(filteredTasks.length / visibleTaskLimit);
 
   return (
     <div className="min-h-screen w-full bg-[#fefcff] relative">
@@ -115,6 +122,7 @@ const HomePage = () => {
             filteredTasks={visibleTasks}
             filter={filter}
             handleTaskChanged={handleTaskChanged}
+            isLoading={isLoading}
           />
 
           {/* Phân Trang và Lọc Theo Date */}

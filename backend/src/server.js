@@ -1,9 +1,11 @@
 import express from "express";
 import taskRoute from "./routes/tasksRouters.js";
+import authRoute from "./routes/authRouters.js";
 import { connectDB } from "./config/db.js";
 import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
+import errorHandler from "./middleware/errorHandler.js";
 
 dotenv.config();
 
@@ -16,12 +18,30 @@ const app = express();
 app.use(express.json());
 
 if (process.env.NODE_ENV === "production") {
-  app.use(cors());
+  // Production: chỉ cho phép frontend domain cụ thể
+  app.use(cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true,
+  }));
 } else {
-  app.use(cors({ origin: "http://localhost:5173" }));
+  // Development: cho phép mọi port của localhost
+  app.use(cors({
+    origin: function (origin, callback) {
+      if (!origin || origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1")) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS policy violation"));
+      }
+    },
+    credentials: true,
+  }));
 }
 
 app.use("/api/tasks", taskRoute);
+app.use("/api/auth", authRoute);
+
+// Error handler (phải đặt sau tất cả routes)
+app.use(errorHandler);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
