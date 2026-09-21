@@ -4,6 +4,7 @@ import TaskCard from "./TaskCard";
 import { Card } from "./ui/card";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import api from "@/lib/axios";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const TaskListSkeleton = () => (
   <div className="space-y-3">
@@ -31,7 +32,23 @@ const TaskList = ({ filteredTasks, filter, handleTaskChanged, isLoading }) => {
     setTasks(filteredTasks || []);
   }, [filteredTasks]);
 
-  const onDragEnd = async (result) => {
+  const queryClient = useQueryClient();
+
+  const reorderMutation = useMutation({
+    mutationFn: async (itemsToUpdate) => {
+      return api.put("/tasks/reorder", { items: itemsToUpdate });
+    },
+    onSuccess: () => {
+      handleTaskChanged(); // Still calling this to keep it consistent
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+    onError: (error) => {
+      console.error("Reorder failed", error);
+      setTasks(filteredTasks); // Revert on failure
+    }
+  });
+
+  const onDragEnd = (result) => {
     if (!result.destination) return;
     
     const sourceIndex = result.source.index;
@@ -50,14 +67,9 @@ const TaskList = ({ filteredTasks, filter, handleTaskChanged, isLoading }) => {
 
     // Optimistic UI update
     setTasks(reorderedTasks);
-
-    try {
-      await api.put("/tasks/reorder", { items: itemsToUpdate });
-      handleTaskChanged(); 
-    } catch (error) {
-      console.error("Reorder failed", error);
-      setTasks(filteredTasks); // Revert on failure
-    }
+    
+    // Call mutation
+    reorderMutation.mutate(itemsToUpdate);
   };
 
   if (isLoading) {

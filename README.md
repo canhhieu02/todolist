@@ -8,11 +8,15 @@
 
 - **Xác thực người dùng (Authentication)**: Đăng ký, Đăng nhập, Đăng xuất sử dụng bảo mật JWT.
 - **Tài khoản cá nhân hóa**: Mỗi người dùng có một không gian quản lý công việc riêng biệt, không ai có thể xâm phạm dữ liệu của người khác.
-- **Quản lý công việc (CRUD)**: Thêm, sửa, xoá và đánh dấu hoàn thành công việc.
+- **Quản lý công việc nâng cao**: Thêm, sửa, xoá, đánh dấu hoàn thành, gắn nhãn (Tags), chia nhỏ nhiệm vụ (Subtasks).
+- **Phân loại độ ưu tiên**: Gắn nhãn Đỏ (Cao) / Vàng (Trung bình) / Xanh (Thấp).
+- **Chế độ xem đa dạng**: 
+  - Xem danh sách (List View).
+  - Xem lịch (Calendar View) trực quan sử dụng `react-big-calendar`.
 - **Giao diện hiện đại (UI/UX)**: 
-  - Sử dụng TailwindCSS kết hợp các component của `shadcn/ui` (mượt mà, Glassmorphism).
-  - Có hiệu ứng Skeleton Loading khi tải dữ liệu.
-  - Hộp thoại Xác nhận (Confirm Dialog) an toàn trước khi xoá.
+  - Sử dụng TailwindCSS kết hợp các component của `shadcn/ui` mang phong cách mượt mà, Glassmorphism cao cấp.
+  - Hỗ trợ Chế độ màn hình tối (Dark Mode) chuẩn chỉ.
+  - Hiệu ứng Skeleton Loading khi tải dữ liệu.
 - **Bảo mật & Tối ưu Backend**:
   - Mật khẩu được mã hoá (hashing) qua `bcryptjs`.
   - Có cơ chế xử lý lỗi (Error Handler) tập trung.
@@ -25,7 +29,8 @@
 ### Frontend
 - **ReactJS 19** (Vite)
 - **State Management**: React Context API & Hooks.
-- **Styling**: TailwindCSS, `shadcn/ui`, `lucide-react`.
+- **Styling**: TailwindCSS, `shadcn/ui`, `lucide-react`, Glassmorphism UI.
+- **Thư viện mở rộng**: `react-big-calendar`, `date-fns` (Xử lý ngày tháng và Lịch).
 - **API Call**: Axios (với Interceptors tự động đính kèm Token).
 - **Routing**: React Router v7.
 
@@ -92,10 +97,11 @@ Frontend chạy tại: `http://localhost:5173` (hoặc `5174` tuỳ cấu hình)
 
 ## 🌟 Hướng phát triển tiếp theo
 
-- Gắn nhãn Độ ưu tiên (Priority - Đỏ/Vàng/Xanh).
-- Thêm Ngày Hết Hạn (Due Date) & Nhắc nhở.
-- Chế độ Màn hình tối (Dark Mode).
-- Tính năng kéo thả (Drag & Drop) để sắp xếp công việc.
+- Tính năng kéo thả (Drag & Drop) để sắp xếp công việc tự do.
+- Quản lý trạng thái (State Management) bằng TanStack Query (React Query) thay cho useEffect thuần.
+- Refactor Backend theo kiến trúc Layered Architecture (Controller-Service-Repository).
+- Tính năng đếm ngược Pomodoro / Tập trung.
+- Nhắc nhở qua Email hoặc Thông báo đẩy (Push Notifications).
 
 ---
 

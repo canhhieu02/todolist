@@ -118,8 +118,8 @@ const TaskCard = ({ task, index, handleTaskChanged, dragHandleProps }) => {
   return (
     <Card
       className={cn(
-        "p-4 bg-gradient-card border-0 shadow-custom-md hover:shadow-custom-lg transition-all duration-200 group",
-        task.status === "complete" && "opacity-75"
+        "p-5 bg-gradient-card backdrop-blur-md border border-white/80 dark:border-white/5 rounded-2xl shadow-custom-sm hover:shadow-custom-md transition-all duration-300 group hover:-translate-y-0.5",
+        task.status === "complete" && "opacity-70 grayscale-[30%]"
       )}
     >
       <div className="flex gap-4">
@@ -177,7 +177,7 @@ const TaskCard = ({ task, index, handleTaskChanged, dragHandleProps }) => {
           {isEditting ? (
             <Input
               placeholder="Cần phải làm gì?"
-              className="flex-1 h-10 mb-2 text-base border-border/50 focus:border-primary/50 focus:ring-primary/20"
+              className="flex-1 h-10 mb-2 text-base border-primary/20 bg-white/50 dark:bg-black/20 backdrop-blur-sm focus:border-primary focus:ring-primary/30 rounded-xl transition-all"
               type="text"
               value={updateTaskTitle}
               onChange={(e) => setUpdateTaskTitle(e.target.value)}
@@ -221,7 +221,7 @@ const TaskCard = ({ task, index, handleTaskChanged, dragHandleProps }) => {
                 value={newSubTask}
                 onChange={(e) => setNewSubTask(e.target.value)}
                 placeholder="Thêm nhiệm vụ con..."
-                className="h-7 text-xs bg-white/50 w-full max-w-[200px]"
+                className="h-8 text-sm bg-white/40 dark:bg-black/20 backdrop-blur-sm border-white/60 dark:border-white/10 focus:border-primary/50 rounded-lg w-full max-w-[250px] transition-all"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") addSubTask();
                 }}

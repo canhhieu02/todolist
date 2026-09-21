@@ -6,29 +6,37 @@ import StatsAndFilters from "@/components/StatsAndFilters";
 import TaskList from "@/components/TaskList";
 import TaskListPagination from "@/components/TaskListPagination";
 import Dashboard from "@/components/Dashboard";
+import CalendarView from "@/components/CalendarView";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import api from "@/lib/axios";
 import { visibleTaskLimit } from "@/lib/data";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { io } from "socket.io-client";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, ListTodo } from "lucide-react";
+import { LayoutDashboard, ListTodo, CalendarDays } from "lucide-react";
 
 const HomePage = () => {
-  const [taskBuffer, setTaskBuffer] = useState([]);
-  const [activeTaskCount, setActiveTaskCount] = useState(0);
-  const [completeTaskCount, setCompleteTaskCount] = useState(0);
   const [filter, setFilter] = useState("all");
   const [dateQuery, setDateQuery] = useState("all");
   const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("tasks"); // "tasks" | "dashboard"
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchTasks();
-  }, [dateQuery]);
+  const { data, isLoading } = useQuery({
+    queryKey: ["tasks", dateQuery],
+    queryFn: async () => {
+      const res = await api.get(`/tasks?filter=${dateQuery}`);
+      return res.data;
+    },
+    enabled: !!user,
+  });
+
+  const taskBuffer = data?.tasks || [];
+  const activeTaskCount = data?.activeCount || 0;
+  const completeTaskCount = data?.completeCount || 0;
 
   useEffect(() => {
     setPage(1);
@@ -45,32 +53,16 @@ const HomePage = () => {
     socket.emit("join_room", user.id);
 
     socket.on("task_changed", () => {
-      fetchTasks();
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
     });
 
     return () => {
       socket.disconnect();
     };
-  }, [user]);
-
-  // logic
-  const fetchTasks = async () => {
-    try {
-      setIsLoading(true);
-      const res = await api.get(`/tasks?filter=${dateQuery}`);
-      setTaskBuffer(res.data.tasks);
-      setActiveTaskCount(res.data.activeCount);
-      setCompleteTaskCount(res.data.completeCount);
-    } catch (error) {
-      console.error("Lỗi xảy ra khi truy xuất tasks:", error);
-      toast.error("Lỗi xảy ra khi truy xuất tasks.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [user, queryClient]);
 
   const handleTaskChanged = () => {
-    fetchTasks();
+    queryClient.invalidateQueries({ queryKey: ["tasks"] });
   };
 
   const handleNext = () => {
@@ -127,16 +119,16 @@ const HomePage = () => {
         }}
       />
       {/* Your Content/Components */}
-      <div className="container relative z-10 pt-8 mx-auto pb-12">
-        <div className="w-full max-w-2xl p-6 mx-auto space-y-6">
+      <div className="container relative z-10 pt-8 lg:pt-12 mx-auto pb-12 px-4 sm:px-6">
+        <div className="w-full max-w-3xl p-6 sm:p-10 mx-auto space-y-8 bg-white/50 dark:bg-black/30 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-[2.5rem] shadow-custom-lg transition-all duration-300">
           {/* Đầu Trang */}
           <Header />
 
-          {/* Tabs chuyển đổi Danh sách/Dashboard */}
-          <div className="flex justify-center gap-2 mb-6 bg-muted/50 p-1 rounded-lg w-fit mx-auto border border-border">
+          {/* Tabs chuyển đổi Danh sách/Dashboard/Lịch */}
+          <div className="flex flex-wrap justify-center gap-2 mb-6 bg-white/60 dark:bg-white/5 p-1.5 rounded-full w-fit mx-auto border border-white/80 dark:border-white/10 shadow-sm backdrop-blur-md">
             <Button
               variant={activeTab === "tasks" ? "default" : "ghost"}
-              className="rounded-md px-6"
+              className="rounded-full px-5 sm:px-6 transition-all duration-300"
               onClick={() => setActiveTab("tasks")}
             >
               <ListTodo className="size-4 mr-2" />
@@ -144,16 +136,26 @@ const HomePage = () => {
             </Button>
             <Button
               variant={activeTab === "dashboard" ? "default" : "ghost"}
-              className="rounded-md px-6"
+              className="rounded-full px-5 sm:px-6 transition-all duration-300"
               onClick={() => setActiveTab("dashboard")}
             >
               <LayoutDashboard className="size-4 mr-2" />
               Thống Kê
             </Button>
+            <Button
+              variant={activeTab === "calendar" ? "default" : "ghost"}
+              className="rounded-full px-5 sm:px-6 transition-all duration-300"
+              onClick={() => setActiveTab("calendar")}
+            >
+              <CalendarDays className="size-4 mr-2" />
+              Lịch
+            </Button>
           </div>
 
           {activeTab === "dashboard" ? (
             <Dashboard tasks={taskBuffer} />
+          ) : activeTab === "calendar" ? (
+            <CalendarView tasks={taskBuffer} />
           ) : (
             <>
               {/* Tạo Nhiệm Vụ */}
