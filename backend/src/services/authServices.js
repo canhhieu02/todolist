@@ -9,6 +9,10 @@ export const generateToken = (id, email) => {
 };
 
 export const registerUser = async (name, email, password) => {
+  if (!name || !email || !password) {
+    throw { status: 400, message: "Vui lòng nhập đầy đủ thông tin" };
+  }
+
   const userExists = await User.findOne({ email });
   if (userExists) {
     throw { status: 400, message: "Email này đã được sử dụng" };
@@ -36,6 +40,10 @@ export const registerUser = async (name, email, password) => {
 };
 
 export const loginUser = async (email, password) => {
+  if (!email || !password) {
+    throw { status: 400, message: "Vui lòng nhập email và mật khẩu" };
+  }
+
   const user = await User.findOne({ email });
 
   if (user && (await bcrypt.compare(password, user.password))) {

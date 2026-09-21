@@ -3,11 +3,6 @@ import { registerUser, loginUser, getUserById } from "../services/authServices.j
 export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "Vui lòng nhập đầy đủ thông tin" });
-    }
-
     const userData = await registerUser(name, email, password);
     res.status(201).json(userData);
   } catch (error) {
@@ -22,11 +17,6 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ message: "Vui lòng nhập email và mật khẩu" });
-    }
-
     const userData = await loginUser(email, password);
     res.json(userData);
   } catch (error) {

@@ -1,19 +1,36 @@
-import React, { useState } from "react";
+import React from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 
+const loginSchema = z.object({
+  email: z.string().min(1, "Email không được để trống").email("Email không hợp lệ"),
+  password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+});
+
 const LoginPage = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const success = await login(email, password);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const onSubmit = async (data) => {
+    const success = await login(data.email, data.password);
     if (success) {
       navigate("/");
     }
@@ -37,31 +54,33 @@ const LoginPage = () => {
           <p className="text-muted-foreground mt-2">Chào mừng trở lại! Hãy đăng nhập để quản lý công việc.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Email</label>
             <Input 
               type="email" 
               placeholder="Nhập email của bạn" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="h-12 bg-white/50"
+              {...register("email")}
+              className={`h-12 bg-white/50 ${errors.email ? 'border-destructive focus-visible:ring-destructive' : ''}`}
             />
+            {errors.email && (
+              <p className="text-sm text-destructive animate-fade-in">{errors.email.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Mật khẩu</label>
             <Input 
               type="password" 
               placeholder="Nhập mật khẩu" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="h-12 bg-white/50"
+              {...register("password")}
+              className={`h-12 bg-white/50 ${errors.password ? 'border-destructive focus-visible:ring-destructive' : ''}`}
             />
+            {errors.password && (
+              <p className="text-sm text-destructive animate-fade-in">{errors.password.message}</p>
+            )}
           </div>
-          <Button type="submit" variant="gradient" className="w-full h-12 mt-6">
-            Đăng Nhập
+          <Button type="submit" variant="gradient" className="w-full h-12 mt-6" disabled={isSubmitting}>
+            {isSubmitting ? "Đang xử lý..." : "Đăng Nhập"}
           </Button>
         </form>
 

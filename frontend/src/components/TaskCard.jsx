@@ -30,7 +30,7 @@ const priorityLabels = {
   low: "Thấp"
 };
 
-const TaskCard = ({ task, index, handleTaskChanged, dragHandleProps }) => {
+const TaskCard = ({ task, handleTaskChanged, dragHandleProps }) => {
   const [isEditting, setIsEditting] = useState(false);
   const [updateTaskTitle, setUpdateTaskTitle] = useState(task.title || "");
   const [newSubTask, setNewSubTask] = useState("");
@@ -97,7 +97,7 @@ const TaskCard = ({ task, index, handleTaskChanged, dragHandleProps }) => {
       await api.put(`/tasks/${task._id}`, { subTasks: updatedSubTasks });
       setNewSubTask("");
       handleTaskChanged();
-    } catch (error) {
+    } catch {
       toast.error("Lỗi khi thêm nhiệm vụ con");
     }
   };
@@ -108,7 +108,7 @@ const TaskCard = ({ task, index, handleTaskChanged, dragHandleProps }) => {
       updatedSubTasks[subTaskIndex].isCompleted = !updatedSubTasks[subTaskIndex].isCompleted;
       await api.put(`/tasks/${task._id}`, { subTasks: updatedSubTasks });
       handleTaskChanged();
-    } catch (error) {
+    } catch {
       toast.error("Lỗi cập nhật nhiệm vụ con");
     }
   };

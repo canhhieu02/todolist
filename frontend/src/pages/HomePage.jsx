@@ -8,7 +8,6 @@ import TaskListPagination from "@/components/TaskListPagination";
 import Dashboard from "@/components/Dashboard";
 import CalendarView from "@/components/CalendarView";
 import React, { useEffect, useState } from "react";
-import { toast } from "sonner";
 import api from "@/lib/axios";
 import { visibleTaskLimit } from "@/lib/data";
 import { useQuery, useQueryClient } from "@tanstack/react-query";

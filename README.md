@@ -9,18 +9,33 @@
 - **Xác thực người dùng (Authentication)**: Đăng ký, Đăng nhập, Đăng xuất sử dụng bảo mật JWT.
 - **Tài khoản cá nhân hóa**: Mỗi người dùng có một không gian quản lý công việc riêng biệt, không ai có thể xâm phạm dữ liệu của người khác.
 - **Quản lý công việc nâng cao**: Thêm, sửa, xoá, đánh dấu hoàn thành, gắn nhãn (Tags), chia nhỏ nhiệm vụ (Subtasks).
-- **Phân loại độ ưu tiên**: Gắn nhãn Đỏ (Cao) / Vàng (Trung bình) / Xanh (Thấp).
+- **Phân loại độ ưu tiên & Hẹn giờ**: Gắn nhãn Đỏ (Cao) / Vàng (Trung bình) / Xanh (Thấp). Cảnh báo quá hạn.
+- **Tính năng Kéo thả (Drag & Drop)**: Tự do sắp xếp thứ tự công việc một cách trực quan.
+- **Xác thực dữ liệu (Form Validation) chặt chẽ**: Hiển thị lỗi trực tiếp (real-time) với React Hook Form & Zod.
 - **Chế độ xem đa dạng**: 
   - Xem danh sách (List View).
+  - Xem thống kê (Dashboard View) bằng biểu đồ Recharts.
   - Xem lịch (Calendar View) trực quan sử dụng `react-big-calendar`.
 - **Giao diện hiện đại (UI/UX)**: 
-  - Sử dụng TailwindCSS kết hợp các component của `shadcn/ui` mang phong cách mượt mà, Glassmorphism cao cấp.
+  - Sử dụng TailwindCSS kết hợp các component của `shadcn/ui` mang phong cách Glassmorphism mượt mà.
   - Hỗ trợ Chế độ màn hình tối (Dark Mode) chuẩn chỉ.
-  - Hiệu ứng Skeleton Loading khi tải dữ liệu.
-- **Bảo mật & Tối ưu Backend**:
-  - Mật khẩu được mã hoá (hashing) qua `bcryptjs`.
-  - Có cơ chế xử lý lỗi (Error Handler) tập trung.
-  - Chặn CORS bảo mật.
+  - Tích hợp hiệu ứng Skeleton Loading và Animation.
+
+---
+
+## 🏗 Kiến trúc & Hiệu năng
+
+- **Frontend State Management (TanStack Query)**:
+  - Cache dữ liệu trên RAM, giảm thiểu tối đa các request dư thừa khi chuyển Tab.
+  - Quản lý trạng thái Global an toàn.
+  - Socket.io cập nhật dữ liệu Real-time đa thiết bị.
+- **Backend Layered Architecture**:
+  - Tuân thủ chặt chẽ mô hình **Controller - Service - Model**.
+  - Tách biệt hoàn toàn luồng xử lý Data (Service) khỏi luồng điều khiển Web (Controller).
+- **Bảo mật & Tối ưu**:
+  - Mật khẩu mã hoá Hash thông qua `bcryptjs`.
+  - Tối ưu đóng gói Build bằng cấu hình chia nhỏ (Chunking) của Vite.
+  - Codebase sạch hoàn toàn (0 ESLint Errors).
 
 ---
 
@@ -28,16 +43,18 @@
 
 ### Frontend
 - **ReactJS 19** (Vite)
-- **State Management**: React Context API & Hooks.
-- **Styling**: TailwindCSS, `shadcn/ui`, `lucide-react`, Glassmorphism UI.
-- **Thư viện mở rộng**: `react-big-calendar`, `date-fns` (Xử lý ngày tháng và Lịch).
-- **API Call**: Axios (với Interceptors tự động đính kèm Token).
+- **State Management**: TanStack Query (React Query) & Context API.
+- **Form & Validation**: React Hook Form, Zod.
+- **Styling & UI**: TailwindCSS, `shadcn/ui`, `lucide-react`, Glassmorphism UI.
+- **Thư viện mở rộng**: `@hello-pangea/dnd` (Kéo thả), `react-big-calendar`, `date-fns`, `recharts` (Biểu đồ).
+- **API Call**: Axios.
 - **Routing**: React Router v7.
 
 ### Backend
-- **NodeJS** & **ExpressJS**
+- **NodeJS** & **ExpressJS** (Layered Architecture).
 - **Database**: MongoDB & Mongoose.
 - **Bảo mật**: `jsonwebtoken` (JWT), `bcryptjs`, `cors`.
+- **Real-time**: Socket.io.
 
 ---
 
@@ -97,11 +114,9 @@ Frontend chạy tại: `http://localhost:5173` (hoặc `5174` tuỳ cấu hình)
 
 ## 🌟 Hướng phát triển tiếp theo
 
-- Tính năng kéo thả (Drag & Drop) để sắp xếp công việc tự do.
-- Quản lý trạng thái (State Management) bằng TanStack Query (React Query) thay cho useEffect thuần.
-- Refactor Backend theo kiến trúc Layered Architecture (Controller-Service-Repository).
+- Quản lý tài khoản (Đổi mật khẩu, quên mật khẩu qua Email OTP).
+- Nhắc nhở công việc qua Thông báo đẩy (Push Notifications) trên trình duyệt.
 - Tính năng đếm ngược Pomodoro / Tập trung.
-- Nhắc nhở qua Email hoặc Thông báo đẩy (Push Notifications).
 
 ---
 
