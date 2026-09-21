@@ -36,7 +36,7 @@ export const getAllTasks = async (req, res) => {
             { $match: query },
             {
                 $facet: {
-                tasks: [{ $sort: { createdAt: -1 } }],
+                tasks: [{ $sort: { order: 1, createdAt: -1 } }],
                 activeCount: [{ $match: { status: "active" } }, { $count: "count" }],
                 completeCount: [{ $match: { status: "complete" } }, { $count: "count" }],
                 },
@@ -56,7 +56,7 @@ export const getAllTasks = async (req, res) => {
 
 export const createTask = async (req, res) => {
     try {
-        const { title } = req.body;
+        const { title, priority, dueDate, tags, subTasks } = req.body;
 
         if (!title || !title.trim()) {
             return res.status(400).json({ message: "Tiêu đề không được để trống." });
@@ -66,9 +66,20 @@ export const createTask = async (req, res) => {
             return res.status(400).json({ message: "Tiêu đề không được vượt quá 200 ký tự." });
         }
 
-        const task = new Task({ title: title.trim(), userId: req.user.id });
+        const task = new Task({ 
+            title: title.trim(), 
+            userId: req.user.id,
+            priority: priority || "medium",
+            dueDate: dueDate || null,
+            tags: tags || [],
+            subTasks: subTasks || [],
+            order: -Date.now() // Default append to top
+        });
 
         const newTask = await task.save();
+
+        req.app.get("io")?.to(req.user.id).emit("task_changed");
+
         res.status(201).json(newTask);
     } catch (error) {
         console.error("Lỗi khi gọi createTask", error);
@@ -79,7 +90,7 @@ export const createTask = async (req, res) => {
 
 export const updateTask = async(req, res) => {
     try {
-        const { title, status, completedAt } = req.body;
+        const { title, status, completedAt, priority, dueDate, tags, subTasks } = req.body;
 
         if (title !== undefined && (!title || !title.trim())) {
             return res.status(400).json({ message: "Tiêu đề không được để trống." });
@@ -95,6 +106,10 @@ export const updateTask = async(req, res) => {
                 title: title?.trim(),
                 status,
                 completedAt,
+                ...(priority && { priority }),
+                ...(dueDate !== undefined && { dueDate }),
+                ...(tags && { tags }),
+                ...(subTasks && { subTasks }),
             },
             { new: true }
         );
@@ -102,6 +117,8 @@ export const updateTask = async(req, res) => {
         if (!updatedTask) {
             return res.status(404).json({ message: "Nhiệm vụ không tồn tại" });
         }
+
+        req.app.get("io")?.to(req.user.id).emit("task_changed");
 
         res.status(200).json(updatedTask);
     } catch (error) {
@@ -119,9 +136,39 @@ export const deleteTask = async(req, res) => {
             return res.status(404).json({ message: "Nhiệm vụ không tồn tại" });
         }
 
+        req.app.get("io")?.to(req.user.id).emit("task_changed");
+
         res.status(200).json(deletedTask);
     } catch (error) {
         console.error("Lỗi khi gọi updateTask", error);
+        res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+export const reorderTasks = async (req, res) => {
+    try {
+        const { items } = req.body;
+        
+        if (!Array.isArray(items)) {
+            return res.status(400).json({ message: "Dữ liệu không hợp lệ" });
+        }
+
+        const bulkOps = items.map(item => ({
+            updateOne: {
+                filter: { _id: item.id, userId: req.user.id },
+                update: { order: item.order }
+            }
+        }));
+
+        if (bulkOps.length > 0) {
+            await Task.bulkWrite(bulkOps);
+        }
+
+        req.app.get("io")?.to(req.user.id).emit("task_changed");
+
+        res.status(200).json({ message: "Cập nhật thứ tự thành công" });
+    } catch (error) {
+        console.error("Lỗi khi gọi reorderTasks", error);
         res.status(500).json({ message: "Lỗi hệ thống" });
     }
 };

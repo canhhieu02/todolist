@@ -4,16 +4,15 @@ import HomePage from "./pages/HomePage";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { ThemeProvider } from "./components/ThemeProvider";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 
 function App() {
   return (
-    <>
-      <Toaster richColors />
-
-      <BrowserRouter>
-        <AuthProvider>
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <AuthProvider>
+        <BrowserRouter>
           <Routes>
             <Route
               path="/"
@@ -32,9 +31,10 @@ function App() {
               element={<NotFound />}
             />
           </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </>
+        </BrowserRouter>
+        <Toaster richColors />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

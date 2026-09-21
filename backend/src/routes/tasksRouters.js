@@ -4,6 +4,7 @@ import {
   deleteTask,
   getAllTasks,
   updateTask,
+  reorderTasks
 } from "../controllers/tasksControllers.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
@@ -15,6 +16,8 @@ router.use(authMiddleware);
 router.get("/", getAllTasks);
 
 router.post("/", createTask);
+
+router.put("/reorder", reorderTasks);
 
 router.put("/:id", updateTask);
 

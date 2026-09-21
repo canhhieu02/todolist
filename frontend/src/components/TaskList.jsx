@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import TaskEmptyState from "./TaskEmptyState";
 import TaskCard from "./TaskCard";
 import { Card } from "./ui/card";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import api from "@/lib/axios";
 
 const TaskListSkeleton = () => (
   <div className="space-y-3">
@@ -23,25 +25,84 @@ const TaskListSkeleton = () => (
 );
 
 const TaskList = ({ filteredTasks, filter, handleTaskChanged, isLoading }) => {
+  const [tasks, setTasks] = useState([]);
+
+  useEffect(() => {
+    setTasks(filteredTasks || []);
+  }, [filteredTasks]);
+
+  const onDragEnd = async (result) => {
+    if (!result.destination) return;
+    
+    const sourceIndex = result.source.index;
+    const destinationIndex = result.destination.index;
+    
+    if (sourceIndex === destinationIndex) return;
+
+    const reorderedTasks = Array.from(tasks);
+    const [movedTask] = reorderedTasks.splice(sourceIndex, 1);
+    reorderedTasks.splice(destinationIndex, 0, movedTask);
+    
+    const itemsToUpdate = reorderedTasks.map((task, index) => ({
+      id: task._id,
+      order: index
+    }));
+
+    // Optimistic UI update
+    setTasks(reorderedTasks);
+
+    try {
+      await api.put("/tasks/reorder", { items: itemsToUpdate });
+      handleTaskChanged(); 
+    } catch (error) {
+      console.error("Reorder failed", error);
+      setTasks(filteredTasks); // Revert on failure
+    }
+  };
+
   if (isLoading) {
     return <TaskListSkeleton />;
   }
 
-  if (!filteredTasks || filteredTasks.length === 0) {
+  if (!tasks || tasks.length === 0) {
     return <TaskEmptyState filter={filter} />;
   }
 
   return (
-    <div className="space-y-3">
-      {filteredTasks.map((task, index) => (
-        <TaskCard
-          key={task._id ?? index}
-          task={task}
-          index={index}
-          handleTaskChanged={handleTaskChanged}
-        />
-      ))}
-    </div>
+    <DragDropContext onDragEnd={onDragEnd}>
+      <Droppable droppableId="task-list">
+        {(provided) => (
+          <div
+            {...provided.droppableProps}
+            ref={provided.innerRef}
+            className="space-y-3"
+          >
+            {tasks.map((task, index) => (
+              <Draggable key={task._id || `task-${index}`} draggableId={task._id} index={index}>
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    style={{
+                      ...provided.draggableProps.style,
+                      opacity: snapshot.isDragging ? 0.8 : 1,
+                    }}
+                  >
+                    <TaskCard
+                      task={task}
+                      index={index}
+                      handleTaskChanged={handleTaskChanged}
+                      dragHandleProps={provided.dragHandleProps}
+                    />
+                  </div>
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+    </DragDropContext>
   );
 };
 

@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
 import errorHandler from "./middleware/errorHandler.js";
+import http from "http";
+import { Server } from "socket.io";
 
 dotenv.config();
 
@@ -13,6 +15,29 @@ const PORT = process.env.PORT || 5001;
 const __dirname = path.resolve();
 
 const app = express();
+const server = http.createServer(app);
+
+// Cấu hình Socket.io với CORS chung cho development
+const io = new Server(server, {
+  cors: {
+    origin: function (origin, callback) {
+      if (!origin || origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1")) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS policy violation"));
+      }
+    },
+    credentials: true,
+  }
+});
+
+app.set("io", io);
+
+io.on("connection", (socket) => {
+  socket.on("join_room", (userId) => {
+    socket.join(userId);
+  });
+});
 
 // middlewares
 app.use(express.json());
@@ -52,7 +77,7 @@ if (process.env.NODE_ENV === "production") {
 }
 
 connectDB().then(() => {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`server bắt đầu trên cổng ${PORT}`);
   });
 });

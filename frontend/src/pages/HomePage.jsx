@@ -5,10 +5,15 @@ import { Header } from "@/components/Header";
 import StatsAndFilters from "@/components/StatsAndFilters";
 import TaskList from "@/components/TaskList";
 import TaskListPagination from "@/components/TaskListPagination";
+import Dashboard from "@/components/Dashboard";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import api from "@/lib/axios";
 import { visibleTaskLimit } from "@/lib/data";
+import { io } from "socket.io-client";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { LayoutDashboard, ListTodo } from "lucide-react";
 
 const HomePage = () => {
   const [taskBuffer, setTaskBuffer] = useState([]);
@@ -18,6 +23,8 @@ const HomePage = () => {
   const [dateQuery, setDateQuery] = useState("all");
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("tasks"); // "tasks" | "dashboard"
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchTasks();
@@ -26,6 +33,25 @@ const HomePage = () => {
   useEffect(() => {
     setPage(1);
   }, [filter, dateQuery]);
+
+  // Socket.io Real-time connection
+  useEffect(() => {
+    if (!user) return;
+
+    const socket = io("http://localhost:5001", {
+      withCredentials: true,
+    });
+
+    socket.emit("join_room", user.id);
+
+    socket.on("task_changed", () => {
+      fetchTasks();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user]);
 
   // logic
   const fetchTasks = async () => {
@@ -90,10 +116,10 @@ const HomePage = () => {
   );
 
   return (
-    <div className="min-h-screen w-full bg-[#fefcff] relative">
-      {/* Dreamy Sky Pink Glow */}
+    <div className="min-h-screen w-full bg-background relative text-foreground transition-colors duration-300">
+      {/* Dreamy Sky Pink Glow (ẩn ở dark mode để tránh loá) */}
       <div
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-0 dark:hidden"
         style={{
           backgroundImage: `
         radial-gradient(circle at 30% 70%, rgba(173, 216, 230, 0.35), transparent 60%),
@@ -101,44 +127,70 @@ const HomePage = () => {
         }}
       />
       {/* Your Content/Components */}
-      <div className="container relative z-10 pt-8 mx-auto">
+      <div className="container relative z-10 pt-8 mx-auto pb-12">
         <div className="w-full max-w-2xl p-6 mx-auto space-y-6">
           {/* Đầu Trang */}
           <Header />
 
-          {/* Tạo Nhiệm Vụ */}
-          <AddTask handleNewTaskAdded={handleTaskChanged} />
-
-          {/* Thống Kê và Bộ lọc */}
-          <StatsAndFilters
-            filter={filter}
-            setFilter={setFilter}
-            activeTasksCount={activeTaskCount}
-            completedTasksCount={completeTaskCount}
-          />
-
-          {/* Danh Sách Nhiệm Vụ */}
-          <TaskList
-            filteredTasks={visibleTasks}
-            filter={filter}
-            handleTaskChanged={handleTaskChanged}
-            isLoading={isLoading}
-          />
-
-          {/* Phân Trang và Lọc Theo Date */}
-          <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
-            <TaskListPagination
-              handleNext={handleNext}
-              handlePrev={handlePrev}
-              handlePageChange={handlePageChange}
-              page={page}
-              totalPages={totalPages}
-            />
-            <DateTimeFilter
-              dateQuery={dateQuery}
-              setDateQuery={setDateQuery}
-            />
+          {/* Tabs chuyển đổi Danh sách/Dashboard */}
+          <div className="flex justify-center gap-2 mb-6 bg-muted/50 p-1 rounded-lg w-fit mx-auto border border-border">
+            <Button
+              variant={activeTab === "tasks" ? "default" : "ghost"}
+              className="rounded-md px-6"
+              onClick={() => setActiveTab("tasks")}
+            >
+              <ListTodo className="size-4 mr-2" />
+              Danh Sách
+            </Button>
+            <Button
+              variant={activeTab === "dashboard" ? "default" : "ghost"}
+              className="rounded-md px-6"
+              onClick={() => setActiveTab("dashboard")}
+            >
+              <LayoutDashboard className="size-4 mr-2" />
+              Thống Kê
+            </Button>
           </div>
+
+          {activeTab === "dashboard" ? (
+            <Dashboard tasks={taskBuffer} />
+          ) : (
+            <>
+              {/* Tạo Nhiệm Vụ */}
+              <AddTask handleNewTaskAdded={handleTaskChanged} />
+
+              {/* Thống Kê và Bộ lọc */}
+              <StatsAndFilters
+                filter={filter}
+                setFilter={setFilter}
+                activeTasksCount={activeTaskCount}
+                completedTasksCount={completeTaskCount}
+              />
+
+              {/* Danh Sách Nhiệm Vụ */}
+              <TaskList
+                filteredTasks={visibleTasks}
+                filter={filter}
+                handleTaskChanged={handleTaskChanged}
+                isLoading={isLoading}
+              />
+
+              {/* Phân Trang và Lọc Theo Date */}
+              <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
+                <TaskListPagination
+                  handleNext={handleNext}
+                  handlePrev={handlePrev}
+                  handlePageChange={handlePageChange}
+                  page={page}
+                  totalPages={totalPages}
+                />
+                <DateTimeFilter
+                  dateQuery={dateQuery}
+                  setDateQuery={setDateQuery}
+                />
+              </div>
+            </>
+          )}
 
           {/* Chân Trang */}
           <Footer

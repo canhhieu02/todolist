@@ -21,9 +21,10 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#fefcff] relative p-4">
+    <div className="min-h-screen w-full bg-background text-foreground relative flex items-center justify-center p-4 transition-colors duration-300">
+      {/* Dreamy Sky Pink Glow */}
       <div
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-0 dark:hidden"
         style={{
           backgroundImage: `
         radial-gradient(circle at 30% 70%, rgba(173, 216, 230, 0.35), transparent 60%),
