@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Search, X, SlidersHorizontal } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { cn } from '@/lib/utils';
 import {
   Popover,
   PopoverContent,

@@ -79,7 +79,7 @@ const TaskCollaborationDialog = ({ open, onOpenChange, task }) => {
       // POST API, server sẽ emit event qua socket
       await api.post(`/collaboration/tasks/${task._id}/comments`, { content: commentText });
       setCommentText("");
-    } catch (error) {
+    } catch {
       toast.error("Lỗi khi gửi bình luận");
     }
   };

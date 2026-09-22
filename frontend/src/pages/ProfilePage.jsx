@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { User, Lock, Download, Camera, ArrowLeft } from "lucide-react";
 import { Link } from "react-router";
-import { cn } from "@/lib/utils";
 
 const ProfilePage = () => {
   const { user, login } = useAuth(); // Dùng login(token, user) để update state AuthContext
@@ -37,7 +36,7 @@ const ProfilePage = () => {
           emailReminders: data.emailReminders ?? true,
           avatar: data.avatar || null,
         });
-      } catch (error) {
+      } catch {
         toast.error("Không thể tải thông tin người dùng");
       }
     };
@@ -135,7 +134,7 @@ const ProfilePage = () => {
       link.click();
       document.body.removeChild(link);
       toast.success(`Đã tải xuống file ${format.toUpperCase()}`);
-    } catch (error) {
+    } catch {
       toast.error("Lỗi xuất dữ liệu");
     }
   };
