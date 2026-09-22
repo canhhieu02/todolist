@@ -166,22 +166,23 @@ const HomePage = () => {
           {/* Main Content */}
           <div className="flex-1 space-y-8 bg-white/50 dark:bg-black/30 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-[2.5rem] shadow-custom-lg p-6 sm:p-10 transition-all duration-300 min-w-0">
             {/* Đầu Trang */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
-              <div className="flex-1 min-w-0">
-                <Header />
-              </div>
-              <div className="w-full sm:w-auto self-start mt-2 sm:mt-0">
+            <div className="border-b border-border/50 pb-6 mb-6">
+              <Header />
+            </div>
+
+            {/* Thanh tìm kiếm và Tabs */}
+            <div className="flex flex-col lg:flex-row justify-between items-center gap-4 mb-6">
+              <div className="w-full lg:w-auto flex-1 lg:max-w-md">
                 <SearchBar 
                   onSearch={setSearchQuery} 
                   filters={advancedFilters} 
                   setFilters={setAdvancedFilters} 
                 />
               </div>
-            </div>
 
-            {/* Tabs chuyển đổi Danh sách/Dashboard/Lịch */}
-            <div className="flex flex-wrap justify-center gap-2 mb-6 bg-white/60 dark:bg-white/5 p-1.5 rounded-full w-fit mx-auto border border-white/80 dark:border-white/10 shadow-sm backdrop-blur-md">
-            <Button
+              {/* Tabs chuyển đổi Danh sách/Dashboard/Lịch */}
+              <div className="flex flex-wrap justify-center gap-2 bg-white/60 dark:bg-white/5 p-1.5 rounded-full w-fit mx-auto lg:mx-0 border border-white/80 dark:border-white/10 shadow-sm backdrop-blur-md">
+              <Button
               variant={activeTab === "tasks" ? "default" : "ghost"}
               className="rounded-full px-5 sm:px-6 transition-all duration-300"
               onClick={() => setActiveTab("tasks")}
@@ -206,6 +207,7 @@ const HomePage = () => {
               Lịch
             </Button>
           </div>
+        </div>
 
           {activeTab === "dashboard" ? (
             <Dashboard tasks={allTasks} />
