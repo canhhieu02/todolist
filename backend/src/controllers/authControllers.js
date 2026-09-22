@@ -1,42 +1,33 @@
 import { registerUser, loginUser, getUserById } from "../services/authServices.js";
 
-export const register = async (req, res) => {
+// Dùng next(error) để đẩy tất cả lỗi lên errorHandler middleware
+// Không xử lý lỗi cục bộ trong từng controller — nhất quán và dễ maintain
+
+export const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
     const userData = await registerUser(name, email, password);
     res.status(201).json(userData);
   } catch (error) {
-    console.error("Lỗi register:", error);
-    if (error.status) {
-      return res.status(error.status).json({ message: error.message });
-    }
-    res.status(500).json({ message: "Lỗi hệ thống" });
+    next(error);
   }
 };
 
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const userData = await loginUser(email, password);
     res.json(userData);
   } catch (error) {
-    console.error("Lỗi login:", error);
-    if (error.status) {
-      return res.status(error.status).json({ message: error.message });
-    }
-    res.status(500).json({ message: "Lỗi hệ thống" });
+    next(error);
   }
 };
 
-export const getMe = async (req, res) => {
+export const getMe = async (req, res, next) => {
   try {
     const user = await getUserById(req.user.id);
     res.json(user);
   } catch (error) {
-    console.error("Lỗi getMe:", error);
-    if (error.status) {
-      return res.status(error.status).json({ message: error.message });
-    }
-    res.status(500).json({ message: "Lỗi hệ thống" });
+    next(error);
   }
 };

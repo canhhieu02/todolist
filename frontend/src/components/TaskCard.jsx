@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Card } from "./ui/card";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
-import { Calendar, CheckCircle2, Circle, SquarePen, Trash2, GripVertical, Clock, Flag, Tag } from "lucide-react";
+import { Calendar, CheckCircle2, Circle, SquarePen, Trash2, GripVertical, Clock, Flag, Tag, X, Plus, MessageSquare } from "lucide-react";
 import { Input } from "./ui/input";
 import { format, isPast } from "date-fns";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import TaskCollaborationDialog from "./TaskCollaborationDialog";
 import {
   Dialog,
   DialogClose,
@@ -31,9 +34,13 @@ const priorityLabels = {
 };
 
 const TaskCard = ({ task, handleTaskChanged, dragHandleProps }) => {
-  const [isEditting, setIsEditting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [updateTaskTitle, setUpdateTaskTitle] = useState(task.title || "");
   const [newSubTask, setNewSubTask] = useState("");
+  const [showCollabDialog, setShowCollabDialog] = useState(false);
+
+  // ── ref để tránh double-save khi Enter + blur xảy ra cùng lúc ─────────────
+  const isSavingRef = useRef(false);
 
   const deleteTask = async (taskId) => {
     try {
@@ -42,22 +49,68 @@ const TaskCard = ({ task, handleTaskChanged, dragHandleProps }) => {
       handleTaskChanged();
     } catch (error) {
       console.error("Lỗi xảy ra khi xoá task.", error);
-      toast.error("Lỗi xảy ra khi xoá nhiệm vụ mới.");
+      toast.error("Lỗi xảy ra khi xoá nhiệm vụ.");
     }
   };
 
+  // ── Inline Edit: Sửa race condition blur + Enter ─────────────────────────────
+  // - Blur → SAVE (không cancel như trước)
+  // - Escape → CANCEL
+  // - Enter → SAVE
+  // isSavingRef ngăn double-save khi Enter gây blur trước khi unmount
+
   const updateTask = async () => {
+    // Ngăn double-save khi Enter + blur cùng trigger
+    if (isSavingRef.current) return;
+
+    const trimmed = updateTaskTitle.trim();
+
+    // Không có gì để save (tiêu đề rỗng)
+    if (!trimmed) {
+      cancelEdit();
+      return;
+    }
+
+    // Không có thay đổi → chỉ đóng edit mode
+    if (trimmed === task.title) {
+      setIsEditing(false);
+      return;
+    }
+
+    isSavingRef.current = true;
+    setIsEditing(false);
+
     try {
-      setIsEditting(false);
-      await api.put(`/tasks/${task._id}`, {
-        title: updateTaskTitle,
-      });
-      toast.success(`Nhiệm vụ đã đổi thành ${updateTaskTitle}`);
+      await api.put(`/tasks/${task._id}`, { title: trimmed });
+      toast.success(`Đã đổi tên thành "${trimmed}"`);
       handleTaskChanged();
     } catch (error) {
       console.error("Lỗi xảy ra khi update task.", error);
-      toast.error("Lỗi xảy ra khi cập nhập nhiệm vụ.");
+      toast.error("Lỗi xảy ra khi cập nhật nhiệm vụ.");
+      // Revert về title cũ nếu API lỗi
+      setUpdateTaskTitle(task.title || "");
+    } finally {
+      isSavingRef.current = false;
     }
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setUpdateTaskTitle(task.title || "");
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      updateTask();
+    } else if (event.key === "Escape") {
+      cancelEdit();
+    }
+  };
+
+  // Blur → Save (không cancel). isSavingRef ngăn double-save với Enter
+  const handleBlur = () => {
+    updateTask();
   };
 
   const toggleTaskCompleteButton = async () => {
@@ -67,7 +120,6 @@ const TaskCard = ({ task, handleTaskChanged, dragHandleProps }) => {
           status: "complete",
           completedAt: new Date().toISOString(),
         });
-
         toast.success(`${task.title} đã hoàn thành.`);
       } else {
         await api.put(`/tasks/${task._id}`, {
@@ -76,25 +128,20 @@ const TaskCard = ({ task, handleTaskChanged, dragHandleProps }) => {
         });
         toast.success(`${task.title} đã đổi sang chưa hoàn thành.`);
       }
-
       handleTaskChanged();
     } catch (error) {
       console.error("Lỗi xảy ra khi update task.", error);
-      toast.error("Lỗi xảy ra khi cập nhập nhiệm vụ.");
+      toast.error("Lỗi xảy ra khi cập nhật nhiệm vụ.");
     }
   };
 
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter") {
-      updateTask();
-    }
-  };
+  // ── SubTask APIs — dùng atomic endpoints, không ghi đè toàn bộ array ─────────
 
   const addSubTask = async () => {
     if (!newSubTask.trim()) return;
     try {
-      const updatedSubTasks = [...(task.subTasks || []), { title: newSubTask, isCompleted: false }];
-      await api.put(`/tasks/${task._id}`, { subTasks: updatedSubTasks });
+      // POST /tasks/:id/subtasks — server dùng $push
+      await api.post(`/tasks/${task._id}/subtasks`, { title: newSubTask });
       setNewSubTask("");
       handleTaskChanged();
     } catch {
@@ -102,14 +149,24 @@ const TaskCard = ({ task, handleTaskChanged, dragHandleProps }) => {
     }
   };
 
-  const toggleSubTask = async (subTaskIndex) => {
+  const toggleSubTask = async (subTaskId) => {
     try {
-      const updatedSubTasks = [...task.subTasks];
-      updatedSubTasks[subTaskIndex].isCompleted = !updatedSubTasks[subTaskIndex].isCompleted;
-      await api.put(`/tasks/${task._id}`, { subTasks: updatedSubTasks });
+      // PATCH /tasks/:id/subtasks/:subId/toggle — server dùng $set positional
+      await api.patch(`/tasks/${task._id}/subtasks/${subTaskId}/toggle`);
       handleTaskChanged();
     } catch {
       toast.error("Lỗi cập nhật nhiệm vụ con");
+    }
+  };
+
+  const removeSubTask = async (subTaskId) => {
+    try {
+      // DELETE /tasks/:id/subtasks/:subId — server dùng $pull
+      await api.delete(`/tasks/${task._id}/subtasks/${subTaskId}`);
+      handleTaskChanged();
+      toast.success("Đã xóa nhiệm vụ con");
+    } catch {
+      toast.error("Lỗi xóa nhiệm vụ con");
     }
   };
 
@@ -118,10 +175,15 @@ const TaskCard = ({ task, handleTaskChanged, dragHandleProps }) => {
   return (
     <Card
       className={cn(
-        "p-5 bg-gradient-card backdrop-blur-md border border-white/80 dark:border-white/5 rounded-2xl shadow-custom-sm hover:shadow-custom-md transition-all duration-300 group hover:-translate-y-0.5",
+        "relative p-5 bg-gradient-card backdrop-blur-md border border-white/80 dark:border-white/5 rounded-2xl shadow-custom-sm hover:shadow-custom-md transition-all duration-300 group hover:-translate-y-0.5",
         task.status === "complete" && "opacity-70 grayscale-[30%]"
       )}
     >
+      {task.createdAt && (
+        <span className="absolute top-3 right-4 text-[10px] text-muted-foreground/60 pointer-events-none">
+          Ngày thêm: {format(new Date(task.createdAt), "dd/MM/yyyy")}
+        </span>
+      )}
       <div className="flex gap-4">
         {/* Nút Drag Handle (Kéo thả) */}
         <div 
@@ -170,11 +232,13 @@ const TaskCard = ({ task, handleTaskChanged, dragHandleProps }) => {
               <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border", isOverdue ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-muted text-muted-foreground")}>
                 <Clock className="size-3" />
                 {format(new Date(task.dueDate), "dd/MM/yyyy")}
+                {isOverdue && " (Quá hạn)"}
               </span>
             )}
           </div>
 
-          {isEditting ? (
+          {/* Title — edit mode hoặc display mode */}
+          {isEditing ? (
             <Input
               placeholder="Cần phải làm gì?"
               className="flex-1 h-10 mb-2 text-base border-primary/20 bg-white/50 dark:bg-black/20 backdrop-blur-sm focus:border-primary focus:ring-primary/30 rounded-xl transition-all"
@@ -182,39 +246,64 @@ const TaskCard = ({ task, handleTaskChanged, dragHandleProps }) => {
               value={updateTaskTitle}
               onChange={(e) => setUpdateTaskTitle(e.target.value)}
               onKeyDown={handleKeyDown}
-              onBlur={() => {
-                setIsEditting(false);
-                setUpdateTaskTitle(task.title || "");
-              }}
+              onBlur={handleBlur}
+              autoFocus
             />
           ) : (
-            <p
-              className={cn(
-                "text-base transition-all duration-200 mb-2",
-                task.status === "complete"
-                  ? "line-through text-muted-foreground"
-                  : "text-foreground"
+            <>
+              <p
+                className={cn(
+                  "text-base transition-all duration-200 mb-1",
+                  task.status === "complete"
+                    ? "line-through text-muted-foreground"
+                    : "text-foreground font-medium"
+                )}
+              >
+                {task.title}
+              </p>
+              
+              {/* Mô tả chi tiết */}
+              {task.description && (
+                <div className={cn(
+                  "prose prose-sm dark:prose-invert max-w-none text-sm text-foreground/80 markdown-body bg-black/5 dark:bg-white/5 p-3 rounded-xl mb-3 border border-border/50",
+                  task.status === "complete" && "opacity-60"
+                )}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {task.description}
+                  </ReactMarkdown>
+                </div>
               )}
-            >
-              {task.title}
-            </p>
+            </>
           )}
 
           {/* Sub-tasks */}
           <div className="space-y-2 mt-3 ml-2 border-l-2 border-muted pl-4">
-            {task.subTasks?.map((sub, i) => (
-              <div key={i} className="flex items-center gap-2 group/sub">
-                <button 
-                  onClick={() => toggleSubTask(i)}
-                  className={cn("flex-shrink-0 size-4 rounded transition-colors border", sub.isCompleted ? "bg-success border-success text-white" : "border-muted-foreground hover:border-primary")}
+            {task.subTasks?.map((sub) => (
+              <div key={sub._id} className="flex items-center gap-2 group/sub">
+                {/* Toggle checkbox — dùng sub._id, không phải index */}
+                <button
+                  onClick={() => toggleSubTask(sub._id)}
+                  className={cn(
+                    "flex-shrink-0 size-4 rounded transition-colors border flex items-center justify-center",
+                    sub.isCompleted ? "bg-success border-success text-white" : "border-muted-foreground hover:border-primary"
+                  )}
                 >
                   {sub.isCompleted && <CheckCircle2 className="size-3" />}
                 </button>
-                <span className={cn("text-sm", sub.isCompleted ? "line-through text-muted-foreground" : "text-foreground")}>
+                <span className={cn("text-sm flex-1", sub.isCompleted ? "line-through text-muted-foreground" : "text-foreground")}>
                   {sub.title}
                 </span>
+                {/* Nút xóa subtask — hiện khi hover */}
+                <button
+                  onClick={() => removeSubTask(sub._id)}
+                  className="opacity-0 group-hover/sub:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                  title="Xóa nhiệm vụ con"
+                >
+                  <X className="size-3" />
+                </button>
               </div>
             ))}
+
             {/* Thêm Sub-task mới */}
             <div className="flex items-center gap-2 mt-2">
               <Input 
@@ -223,23 +312,46 @@ const TaskCard = ({ task, handleTaskChanged, dragHandleProps }) => {
                 placeholder="Thêm nhiệm vụ con..."
                 className="h-8 text-sm bg-white/40 dark:bg-black/20 backdrop-blur-sm border-white/60 dark:border-white/10 focus:border-primary/50 rounded-lg w-full max-w-[250px] transition-all"
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") addSubTask();
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addSubTask();
+                  }
                 }}
               />
+              {newSubTask.trim() && (
+                <button
+                  onClick={addSubTask}
+                  className="text-primary hover:text-primary/80 transition-colors"
+                  title="Thêm"
+                >
+                  <Plus className="size-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
 
         {/* Nút chỉnh và xoá */}
-        <div className="hidden gap-2 group-hover:inline-flex animate-slide-up self-start">
+        <div className="inline-flex gap-2 self-end opacity-70 hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="flex-shrink-0 transition-colors size-8 text-muted-foreground hover:text-primary"
+            onClick={() => setShowCollabDialog(true)}
+            title="Thảo luận & Chia sẻ"
+          >
+            <MessageSquare className="size-4" />
+          </Button>
+
           <Button
             variant="ghost"
             size="icon"
             className="flex-shrink-0 transition-colors size-8 text-muted-foreground hover:text-info"
             onClick={() => {
-              setIsEditting(true);
+              setIsEditing(true);
               setUpdateTaskTitle(task.title || "");
             }}
+            title={isEditing ? "Đang chỉnh sửa... (Enter để lưu, Escape để hủy)" : "Chỉnh sửa tiêu đề"}
           >
             <SquarePen className="size-4" />
           </Button>
@@ -275,6 +387,12 @@ const TaskCard = ({ task, handleTaskChanged, dragHandleProps }) => {
           </Dialog>
         </div>
       </div>
+
+      <TaskCollaborationDialog 
+        open={showCollabDialog} 
+        onOpenChange={setShowCollabDialog} 
+        task={task} 
+      />
     </Card>
   );
 };

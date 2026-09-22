@@ -5,6 +5,13 @@ const subTaskSchema = new mongoose.Schema({
   isCompleted: { type: Boolean, default: false }
 });
 
+const recurrenceSchema = new mongoose.Schema({
+  type: { type: String, enum: ["daily", "weekly", "monthly"], required: true },
+  interval: { type: Number, default: 1, min: 1 }, // mỗi N ngày/tuần/tháng
+  endDate: { type: Date, default: null },
+  nextDueDate: { type: Date, default: null },
+}, { _id: false });
+
 const taskSchema = new mongoose.Schema(
   {
     userId: {
@@ -16,6 +23,11 @@ const taskSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+    },
+    description: {
+      type: String,
+      default: "",
+      maxlength: 5000,
     },
     status: {
       type: String,
@@ -46,12 +58,29 @@ const taskSchema = new mongoose.Schema(
     order: {
       type: Number,
       default: 0,
-    }
+    },
+    projectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      default: null,
+    },
+    recurrence: {
+      type: recurrenceSchema,
+      default: null,
+    },
+    // Task được chia sẻ với người dùng khác
+    sharedWith: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    }],
   },
   {
-    timestamps: true, // createdAt và updatedAt tự động thêm vào
+    timestamps: true,
   }
 );
+
+// Text index để full-text search
+taskSchema.index({ title: "text", description: "text", tags: "text" });
 
 const Task = mongoose.model("Task", taskSchema);
 export default Task;

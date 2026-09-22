@@ -9,7 +9,10 @@ const authMiddleware = (req, res, next) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "default_secret");
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET chưa được cấu hình trong .env");
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // { id, email }
     next();
   } catch (error) {
@@ -18,3 +21,4 @@ const authMiddleware = (req, res, next) => {
 };
 
 export default authMiddleware;
+

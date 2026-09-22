@@ -1,2 +1,23 @@
-.env
+# Dependencies
 node_modules/
+
+# Environment variables - KHÔNG ĐƯỢC commit file này
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+dist-ssr/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Debug / test files thừa
+test_auth.js
+debug_calendar.js

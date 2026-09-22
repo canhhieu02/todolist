@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { format, subDays, isSameDay } from "date-fns";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 const PRIORITY_COLORS = { low: "#22c55e", medium: "#eab308", high: "#ef4444" };
@@ -21,6 +22,16 @@ const Dashboard = ({ tasks }) => {
   ];
 
   const overdueCount = tasks.filter(t => t.status !== "complete" && t.dueDate && new Date(t.dueDate) < new Date()).length;
+
+  // Trend data (7 ngày gần nhất)
+  const trendData = Array.from({ length: 7 }).map((_, i) => {
+    const d = subDays(new Date(), 6 - i);
+    const count = tasks.filter(t => t.status === "complete" && t.completedAt && isSameDay(new Date(t.completedAt), d)).length;
+    return {
+      date: format(d, 'dd/MM'),
+      completed: count
+    };
+  });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -109,6 +120,26 @@ const Dashboard = ({ tasks }) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Trend Chart (Line Chart) */}
+      <Card className="bg-gradient-card shadow-sm border-white/40 dark:border-white/5">
+        <CardHeader>
+          <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+            Biểu Đồ Hoàn Thành (7 ngày qua)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={trendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.2)" vertical={false} />
+              <Line type="monotone" dataKey="completed" name="Hoàn thành" stroke="#0088FE" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip cursor={{ stroke: 'hsl(var(--muted-foreground) / 0.2)' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
     </div>
   );
 };

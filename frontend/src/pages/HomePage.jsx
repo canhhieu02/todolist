@@ -7,6 +7,8 @@ import TaskList from "@/components/TaskList";
 import TaskListPagination from "@/components/TaskListPagination";
 import Dashboard from "@/components/Dashboard";
 import CalendarView from "@/components/CalendarView";
+import ProjectSidebar from "@/components/ProjectSidebar";
+import SearchBar from "@/components/SearchBar";
 import React, { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { visibleTaskLimit } from "@/lib/data";
@@ -17,94 +19,126 @@ import { Button } from "@/components/ui/button";
 import { LayoutDashboard, ListTodo, CalendarDays } from "lucide-react";
 
 const HomePage = () => {
-  const [filter, setFilter] = useState("all");
+  // ── Status filter (gửi lên server) ──────────────────────────────────────
+  // "all" | "active" | "completed"
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // ── Date filter (gửi lên server) ────────────────────────────────────────
   const [dateQuery, setDateQuery] = useState("all");
+
+  // ── Project filter (gửi lên server) ─────────────────────────────────────
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
+
+  // ── Search & Advanced Filters (gửi lên server) ─────────────────────────
+  const [searchQuery, setSearchQuery] = useState("");
+  const [advancedFilters, setAdvancedFilters] = useState({});
+
+  // ── Phân trang (gửi lên server) ─────────────────────────────────────────
   const [page, setPage] = useState(1);
-  const [activeTab, setActiveTab] = useState("tasks"); // "tasks" | "dashboard"
+
+  const [activeTab, setActiveTab] = useState("tasks"); // "tasks" | "dashboard" | "calendar"
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // ── Fetch tasks (server-side pagination + filter) ────────────────────────
   const { data, isLoading } = useQuery({
-    queryKey: ["tasks", dateQuery],
+    queryKey: ["tasks", dateQuery, statusFilter, page, selectedProjectId, searchQuery, advancedFilters],
     queryFn: async () => {
-      const res = await api.get(`/tasks?filter=${dateQuery}`);
+      // Nếu có search query hoặc advanced filters -> gọi API search mới
+      if (searchQuery || Object.keys(advancedFilters).length > 0) {
+        const queryParams = new URLSearchParams({
+          q: searchQuery,
+          page: page,
+          limit: visibleTaskLimit,
+          ...(selectedProjectId && { projectId: selectedProjectId }),
+          ...(statusFilter !== "all" && { status: statusFilter }),
+          ...advancedFilters
+        });
+        const res = await api.get(`/collaboration/search?${queryParams.toString()}`);
+        return res.data;
+      }
+
+      // Ngược lại, gọi API tasks thông thường (tối ưu hóa aggregate)
+      const res = await api.get(
+        `/tasks?filter=${dateQuery}&status=${statusFilter}&page=${page}&limit=${visibleTaskLimit}${selectedProjectId ? `&projectId=${selectedProjectId}` : ""}`
+      );
       return res.data;
     },
     enabled: !!user,
+    // Giữ data cũ khi chuyển trang (tránh nhấp nháy)
+    placeholderData: (prev) => prev,
   });
 
-  const taskBuffer = data?.tasks || [];
+  // Dữ liệu từ server — tasks đã được phân trang sẵn
+  const visibleTasks = data?.tasks || [];
   const activeTaskCount = data?.activeCount || 0;
   const completeTaskCount = data?.completeCount || 0;
+  const totalPages = data?.totalPages || 1;
 
+  // Dùng cho Dashboard và Calendar: cần toàn bộ tasks (không phân trang)
+  // Fetch riêng khi ở tab Dashboard/Calendar
+  const { data: allTasksData } = useQuery({
+    queryKey: ["tasks", "all_for_charts"],
+    queryFn: async () => {
+      const res = await api.get("/tasks?filter=all&limit=1000");
+      return res.data;
+    },
+    enabled: !!user && (activeTab === "dashboard" || activeTab === "calendar"),
+    staleTime: 2 * 60 * 1000, // cache 2 phút cho charts
+  });
+  const allTasks = allTasksData?.tasks || [];
+
+  // ── Reset trang khi đổi filter ───────────────────────────────────────────
   useEffect(() => {
     setPage(1);
-  }, [filter, dateQuery]);
+  }, [statusFilter, dateQuery]);
 
-  // Socket.io Real-time connection
+  // ── Tự lùi trang nếu trang vượt quá totalPages ──────────────────────────
+  useEffect(() => {
+    if (page > 1 && page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  // ── Socket.io Real-time ──────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
 
-    const socket = io("http://localhost:5001", {
-      withCredentials: true,
-    });
+    // Dùng biến môi trường để linh hoạt giữa dev và production
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:5001";
+    const socket = io(socketUrl, { withCredentials: true });
 
-    socket.emit("join_room", user.id);
+    // user._id: ID từ MongoDB document (thay vì user.id bị undefined)
+    socket.emit("join_room", user._id?.toString());
 
     socket.on("task_changed", () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
     });
 
     return () => {
+      // Cleanup listener trước khi disconnect tránh memory leak
+      socket.off("task_changed");
       socket.disconnect();
     };
   }, [user, queryClient]);
 
+  // ── Invalidate queries sau khi thêm/sửa/xóa task ───────────────────────
   const handleTaskChanged = () => {
     queryClient.invalidateQueries({ queryKey: ["tasks"] });
   };
 
+  // ── Handlers phân trang ──────────────────────────────────────────────────
   const handleNext = () => {
-    if (page < totalPages) {
-      setPage((prev) => prev + 1);
-    }
+    if (page < totalPages) setPage((prev) => prev + 1);
   };
 
   const handlePrev = () => {
-    if (page > 1) {
-      setPage((prev) => prev - 1);
-    }
+    if (page > 1) setPage((prev) => prev - 1);
   };
 
   const handlePageChange = (newPage) => {
     setPage(newPage);
   };
-
-  // biến
-  const filteredTasks = taskBuffer.filter((task) => {
-    switch (filter) {
-      case "active":
-        return task.status === "active";
-      case "completed":
-        return task.status === "complete";
-      default:
-        return true;
-    }
-  });
-
-  const totalPages = Math.ceil(filteredTasks.length / visibleTaskLimit);
-
-  // Tự lùi trang nếu trang hiện tại trống (ví dụ xoá task cuối cùng trên trang)
-  useEffect(() => {
-    if (page > 1 && page > totalPages) {
-      setPage(totalPages || 1);
-    }
-  }, [page, totalPages]);
-
-  const visibleTasks = filteredTasks.slice(
-    (page - 1) * visibleTaskLimit,
-    page * visibleTaskLimit
-  );
 
   return (
     <div className="min-h-screen w-full bg-background relative text-foreground transition-colors duration-300">
@@ -119,12 +153,34 @@ const HomePage = () => {
       />
       {/* Your Content/Components */}
       <div className="container relative z-10 pt-8 lg:pt-12 mx-auto pb-12 px-4 sm:px-6">
-        <div className="w-full max-w-3xl p-6 sm:p-10 mx-auto space-y-8 bg-white/50 dark:bg-black/30 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-[2.5rem] shadow-custom-lg transition-all duration-300">
-          {/* Đầu Trang */}
-          <Header />
+        <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-6">
+          
+          {/* Sidebar (Projects) */}
+          <div className="lg:w-[250px] shrink-0">
+            <ProjectSidebar 
+              selectedProjectId={selectedProjectId} 
+              onSelectProject={setSelectedProjectId} 
+            />
+          </div>
 
-          {/* Tabs chuyển đổi Danh sách/Dashboard/Lịch */}
-          <div className="flex flex-wrap justify-center gap-2 mb-6 bg-white/60 dark:bg-white/5 p-1.5 rounded-full w-fit mx-auto border border-white/80 dark:border-white/10 shadow-sm backdrop-blur-md">
+          {/* Main Content */}
+          <div className="flex-1 space-y-8 bg-white/50 dark:bg-black/30 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-[2.5rem] shadow-custom-lg p-6 sm:p-10 transition-all duration-300 min-w-0">
+            {/* Đầu Trang */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
+              <div className="flex-1 min-w-0">
+                <Header />
+              </div>
+              <div className="w-full sm:w-auto self-start mt-2 sm:mt-0">
+                <SearchBar 
+                  onSearch={setSearchQuery} 
+                  filters={advancedFilters} 
+                  setFilters={setAdvancedFilters} 
+                />
+              </div>
+            </div>
+
+            {/* Tabs chuyển đổi Danh sách/Dashboard/Lịch */}
+            <div className="flex flex-wrap justify-center gap-2 mb-6 bg-white/60 dark:bg-white/5 p-1.5 rounded-full w-fit mx-auto border border-white/80 dark:border-white/10 shadow-sm backdrop-blur-md">
             <Button
               variant={activeTab === "tasks" ? "default" : "ghost"}
               className="rounded-full px-5 sm:px-6 transition-all duration-300"
@@ -152,26 +208,26 @@ const HomePage = () => {
           </div>
 
           {activeTab === "dashboard" ? (
-            <Dashboard tasks={taskBuffer} />
+            <Dashboard tasks={allTasks} />
           ) : activeTab === "calendar" ? (
-            <CalendarView tasks={taskBuffer} />
+            <CalendarView tasks={allTasks} />
           ) : (
             <>
               {/* Tạo Nhiệm Vụ */}
               <AddTask handleNewTaskAdded={handleTaskChanged} />
 
-              {/* Thống Kê và Bộ lọc */}
+              {/* Thống Kê và Bộ lọc trạng thái */}
               <StatsAndFilters
-                filter={filter}
-                setFilter={setFilter}
+                filter={statusFilter}
+                setFilter={(val) => setStatusFilter(val)}
                 activeTasksCount={activeTaskCount}
                 completedTasksCount={completeTaskCount}
               />
 
-              {/* Danh Sách Nhiệm Vụ */}
+              {/* Danh Sách Nhiệm Vụ — đã phân trang sẵn từ server */}
               <TaskList
                 filteredTasks={visibleTasks}
-                filter={filter}
+                filter={statusFilter}
                 handleTaskChanged={handleTaskChanged}
                 isLoading={isLoading}
               />
@@ -198,7 +254,8 @@ const HomePage = () => {
             activeTasksCount={activeTaskCount}
             completedTasksCount={completeTaskCount}
           />
-        </div>
+          </div> {/* Đóng Main Content */}
+        </div> {/* Đóng flex container */}
       </div>
     </div>
   );

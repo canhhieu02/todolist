@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui/button";
 import { LogOut, UserCircle, Moon, Sun } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
+import { Link } from "react-router";
 
 export const Header = () => {
   const { user, logout } = useAuth();
@@ -35,10 +36,14 @@ export const Header = () => {
 
           {user && (
             <div className="flex items-center gap-2 animate-fade-in pr-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/60 dark:bg-black/40 rounded-full border border-white/80 dark:border-white/10 shadow-sm">
-                <UserCircle className="size-4 text-primary" />
+              <Link to="/profile" className="flex items-center gap-2 px-3 py-1.5 bg-white/60 dark:bg-black/40 rounded-full border border-white/80 dark:border-white/10 shadow-sm hover:bg-white/80 dark:hover:bg-black/60 transition-colors group cursor-pointer">
+                {user.avatar ? (
+                  <img src={user.avatar} alt="Avatar" className="size-5 rounded-full object-cover border border-primary/20" />
+                ) : (
+                  <UserCircle className="size-4 text-primary group-hover:scale-110 transition-transform" />
+                )}
                 <span className="text-sm font-semibold">{user.name}</span>
-              </div>
+              </Link>
               <Button 
                 variant="ghost" 
                 size="icon" 

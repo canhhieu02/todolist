@@ -1,0 +1,14 @@
+feat: bổ sung tính năng Projects, Collaboration, Profile người dùng và PWA
+
+- Backend:
+  - Thêm mô hình Project và Comment.
+  - Bổ sung APIs cho Profile, Projects, và Collaboration.
+  - Tích hợp gửi email và lập lịch (cron jobs) tự động.
+  - Cập nhật luồng xử lý Tasks và Auth để tương thích với các tính năng mới.
+- Frontend:
+  - Hỗ trợ PWA (Progressive Web App).
+  - Thêm các components mới: ProjectSidebar, SearchBar, MarkdownEditor, TagChipInput, TaskCollaborationDialog.
+  - Bổ sung trang ProfilePage và cập nhật các UI liên quan (Header, TaskCard, Dashboard).
+- Khác:
+  - Cập nhật toàn diện README.md về tính năng, kiến trúc và hướng dẫn sử dụng.
+  - Bổ sung các cấu hình môi trường (.env.example).

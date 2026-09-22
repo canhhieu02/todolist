@@ -23,4 +23,5 @@ export const options = [
   },
 ];
 
-export const visibleTaskLimit = 4;
+// Số task hiển thị mỗi trang (dùng cho server-side pagination)
+export const visibleTaskLimit = 10;
