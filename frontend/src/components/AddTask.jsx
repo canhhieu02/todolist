@@ -5,7 +5,7 @@ import * as z from "zod";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Folder } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -20,7 +20,7 @@ const addTaskSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
-const AddTask = ({ handleNewTaskAdded }) => {
+const AddTask = ({ handleNewTaskAdded, selectedProjectId }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const queryClient = useQueryClient();
 
@@ -72,11 +72,20 @@ const AddTask = ({ handleNewTaskAdded }) => {
       priority: data.priority,
       dueDate: data.dueDate || null,
       tags: data.tags,
+      // Gửi projectId hiện tại để task được gán vào đúng dự án
+      projectId: selectedProjectId || null,
     });
   };
 
   return (
     <Card className="p-5 sm:p-6 bg-white/40 dark:bg-white/5 backdrop-blur-md border border-white/60 dark:border-white/10 shadow-custom-md rounded-[1.5rem] transition-all duration-300">
+      {/* Badge hiển thị dự án đang active */}
+      {selectedProjectId && (
+        <div className="flex items-center gap-1.5 mb-3 text-xs text-primary font-medium">
+          <Folder className="size-3.5" />
+          <span>Thêm vào dự án đang chọn</span>
+        </div>
+      )}
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 sm:flex-row items-start">
           <div className="flex-1 w-full relative">

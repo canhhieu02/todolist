@@ -15,13 +15,15 @@ export const searchTasksService = async (userId, params) => {
         ]
     }];
 
-    // Full-text search
+    // Full-text search bằng regex (tương thích với mọi điều kiện $or/$and)
+    // Lưu ý: $text không được dùng bên trong $or cùng với điều kiện khác
     if (q?.trim()) {
+        const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         conditions.push({
             $or: [
-                { $text: { $search: q.trim() } },
-                { title: { $regex: q.trim(), $options: "i" } },
-                { description: { $regex: q.trim(), $options: "i" } },
+                { title: { $regex: escaped, $options: "i" } },
+                { description: { $regex: escaped, $options: "i" } },
+                { tags: { $regex: escaped, $options: "i" } },
             ]
         });
     }

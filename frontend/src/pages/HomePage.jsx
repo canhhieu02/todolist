@@ -216,7 +216,7 @@ const HomePage = () => {
           ) : (
             <>
               {/* Tạo Nhiệm Vụ */}
-              <AddTask handleNewTaskAdded={handleTaskChanged} />
+              <AddTask handleNewTaskAdded={handleTaskChanged} selectedProjectId={selectedProjectId} />
 
               {/* Thống Kê và Bộ lọc trạng thái */}
               <StatsAndFilters

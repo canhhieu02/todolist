@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Task from "../../models/Task.js";
 
-export const getAllTasksService = async (userId, filter, status = "all", page = 1, limit = 10) => {
+export const getAllTasksService = async (userId, filter, status = "all", page = 1, limit = 10, projectId = null) => {
     const now = new Date();
     let startDate = null;
     let endDate = null;
@@ -43,6 +43,11 @@ export const getAllTasksService = async (userId, filter, status = "all", page = 
     // Bộ lọc ngày: ưu tiên dueDate, fallback sang createdAt (khi task không có deadline)
     // VD "hôm nay": tasks có dueDate hôm nay, HOẶC tasks không có dueDate tạo hôm nay
     const conditions = [{ userId: userIdObj }];
+
+    // Lọc theo dự án (nếu có)
+    if (projectId) {
+        conditions.push({ projectId: new mongoose.Types.ObjectId(projectId) });
+    }
 
     if (startDate && endDate) {
         conditions.push({

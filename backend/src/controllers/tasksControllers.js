@@ -19,8 +19,9 @@ export const getAllTasks = async (req, res, next) => {
             status = "all",   // status filter: active | completed | all
             page = 1,         // trang hiện tại
             limit = 10,       // số task mỗi trang
+            projectId,        // lọc theo dự án
         } = req.query;
-        const result = await getAllTasksService(req.user.id, filter, status, page, limit);
+        const result = await getAllTasksService(req.user.id, filter, status, page, limit, projectId);
         res.status(200).json(result);
     } catch (error) {
         next(error);

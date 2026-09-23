@@ -29,22 +29,26 @@ const ProjectSidebar = ({ selectedProjectId, onSelectProject }) => {
   const createMutation = useMutation({
     mutationFn: async (name) => api.post('/projects', { name, color: '#6366f1' }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['projects']);
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       setNewProjectName('');
       setIsAdding(false);
       toast.success('Đã tạo dự án mới');
     },
-    onError: () => toast.error('Không thể tạo dự án')
+    onError: (error) => {
+      const msg = error?.response?.data?.message || 'Không thể tạo dự án';
+      toast.error(msg);
+    }
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id) => api.delete(`/projects/${id}`),
     onSuccess: (_, deletedId) => {
-      queryClient.invalidateQueries(['projects']);
-      queryClient.invalidateQueries(['tasks']);
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
       if (selectedProjectId === deletedId) onSelectProject(null);
       toast.success('Đã xóa dự án');
     },
+    onError: () => toast.error('Không thể xóa dự án'),
   });
 
   const handleCreate = (e) => {
@@ -121,14 +125,31 @@ const ProjectSidebar = ({ selectedProjectId, onSelectProject }) => {
       </div>
 
       {isAdding && (
-        <form onSubmit={handleCreate} className="mt-3 animate-in fade-in slide-in-from-top-2">
+        <form onSubmit={handleCreate} className="mt-3 animate-in fade-in slide-in-from-top-2 space-y-2">
           <Input 
             autoFocus
             value={newProjectName}
             onChange={e => setNewProjectName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Escape') { setIsAdding(false); setNewProjectName(''); } }}
             placeholder="Tên dự án..."
             className="h-8 text-sm"
           />
+          <div className="flex gap-1.5">
+            <button
+              type="submit"
+              disabled={!newProjectName.trim() || createMutation.isPending}
+              className="flex-1 h-7 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {createMutation.isPending ? '...' : 'Tạo'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsAdding(false); setNewProjectName(''); }}
+              className="h-7 px-2 rounded-md text-muted-foreground text-xs hover:bg-muted/50 transition-colors"
+            >
+              Hủy
+            </button>
+          </div>
         </form>
       )}
     </Card>
